@@ -29,7 +29,7 @@ namespace Kentor.AuthServices.Configuration
         /// <returns></returns>
         protected override object GetElementKey(ConfigurationElement element)
         {
-            return ((FederationElement)element).MetadataUrl.ToString();
+            return ((FederationElement)element).MetadataLocation.ToString();
         }
 
         /// <summary>
@@ -50,7 +50,7 @@ namespace Kentor.AuthServices.Configuration
         {
             if(options == null)
             {
-                throw new ArgumentNullException("options");
+                throw new ArgumentNullException(nameof(options));
             }
 
             foreach(var configFederation in this)

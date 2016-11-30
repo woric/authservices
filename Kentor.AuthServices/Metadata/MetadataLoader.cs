@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Kentor.AuthServices.Internal;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IdentityModel.Metadata;
@@ -21,22 +22,69 @@ namespace Kentor.AuthServices.Metadata
         /// <summary>
         /// Load and parse metadata.
         /// </summary>
-        /// <param name="metadataUrl">Url to metadata</param>
+        /// <param name="metadataLocation">Path to metadata. A Url, absolute
+        /// path or an app relative path (e.g. ~/App_Data/metadata.xml)</param>
         /// <returns>EntityDescriptor containing metadata</returns>
-        public static ExtendedEntityDescriptor LoadIdp(Uri metadataUrl)
+        public static ExtendedEntityDescriptor LoadIdp(string metadataLocation)
         {
-            if (metadataUrl == null)
+            return LoadIdp(metadataLocation, false);
+        }
+        
+        internal const string LoadIdpFoundEntitiesDescriptor = "Tried to load metadata for an IdentityProvider, which should be an <EntityDescriptor>, but found an <EntitiesDescriptor>. To load that metadata you should use the Federation configuration and not an IdentityProvider. You can also set the SPOptions.Compatibility.UnpackEntitiesDescriptorInIdentityProviderMetadata option to true.";
+        internal const string LoadIdpUnpackingFoundMultipleEntityDescriptors = "Unpacked an EntitiesDescriptor when loading idp metadata, but found multiple EntityDescriptors.Unpacking is only supported if the metadata contains a single EntityDescriptor. Maybe you should use a Federation instead of configuring a single IdentityProvider";
+
+        /// <summary>
+        /// Load and parse metadata.
+        /// </summary>
+        /// <param name="metadataLocation">Path to metadata. A Url, absolute
+        /// path or an app relative path (e.g. ~/App_Data/metadata.xml)</param>
+        /// <param name="unpackEntitiesDescriptor">If the metadata contains
+        /// an EntitiesDescriptor, try to unpack it and return a single
+        /// EntityDescriptor inside if there is one.</param>
+        /// <returns>EntityDescriptor containing metadata</returns>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA2204:Literals should be spelled correctly", MessageId = "EntityDescriptors")]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA2204:Literals should be spelled correctly", MessageId = "SPOptions")]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA2204:Literals should be spelled correctly", MessageId = "UnpackEntitiesDescriptorInIdentityProviderMetadata")]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA2204:Literals should be spelled correctly", MessageId = "EntitiesDescriptor")]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA2204:Literals should be spelled correctly", MessageId = "EntityDescriptor")]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA2204:Literals should be spelled correctly", MessageId = "IdentityProvider")]
+        public static ExtendedEntityDescriptor LoadIdp(string metadataLocation, bool unpackEntitiesDescriptor)
+        {
+            if (metadataLocation == null)
             {
-                throw new ArgumentNullException("metadataUrl");
+                throw new ArgumentNullException(nameof(metadataLocation));
             }
 
-            return (ExtendedEntityDescriptor)Load(metadataUrl);
+            var result = Load(metadataLocation);
+
+            var entitiesDescriptor = result as ExtendedEntitiesDescriptor;
+            if(entitiesDescriptor != null)
+            {
+                if(unpackEntitiesDescriptor)
+                {
+                    if(entitiesDescriptor.ChildEntities.Count > 1)
+                    {
+                        throw new InvalidOperationException(LoadIdpUnpackingFoundMultipleEntityDescriptors);
+                    }
+
+                    return (ExtendedEntityDescriptor)entitiesDescriptor.ChildEntities.Single();
+                }
+
+                throw new InvalidOperationException(LoadIdpFoundEntitiesDescriptor);
+            }
+
+            return (ExtendedEntityDescriptor)result;
         }
 
-        private static MetadataBase Load(Uri metadataUrl)
+        private static MetadataBase Load(string metadataLocation)
         {
+            if(PathHelper.IsWebRootRelative(metadataLocation))
+            {
+                metadataLocation = PathHelper.MapPath(metadataLocation);
+            }
+
             using (var client = new WebClient())
-            using (var stream = client.OpenRead(metadataUrl.ToString()))
+            using (var stream = client.OpenRead(metadataLocation))
             {
                 return Load(stream);
             }
@@ -57,19 +105,31 @@ namespace Kentor.AuthServices.Metadata
             }
         }
 
+        internal const string LoadFederationFoundEntityDescriptor = "Tried to load metadata for a Federation, which should be an <EntitiesDescriptor> containing one or more <EntityDescriptor> elements, but found an <EntityDescriptor>. To load that metadata you should use the IdentityProvider configuration and not a Federation.";
+
         /// <summary>
         /// Load and parse metadata for a federation.
         /// </summary>
-        /// <param name="metadataUrl">Url to metadata</param>
+        /// <param name="metadataLocation">Url to metadata</param>
         /// <returns></returns>
-        public static ExtendedEntitiesDescriptor LoadFederation(Uri metadataUrl)
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA2204:Literals should be spelled correctly", MessageId = "EntitiesDescriptor")]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA2204:Literals should be spelled correctly", MessageId = "EntityDescriptor")]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA2204:Literals should be spelled correctly", MessageId = "IdentityProvider")]
+        public static ExtendedEntitiesDescriptor LoadFederation(string metadataLocation)
         {
-            if (metadataUrl == null)
+            if (metadataLocation == null)
             {
-                throw new ArgumentNullException("metadataUrl");
+                throw new ArgumentNullException(nameof(metadataLocation));
             }
 
-            return (ExtendedEntitiesDescriptor)Load(metadataUrl);
+            var result = Load(metadataLocation);
+
+            if(result is ExtendedEntityDescriptor)
+            {
+                throw new InvalidOperationException(LoadFederationFoundEntityDescriptor);
+            }
+
+            return (ExtendedEntitiesDescriptor)result;
         }
     }
 }

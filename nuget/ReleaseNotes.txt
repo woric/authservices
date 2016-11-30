@@ -1,12 +1,15 @@
-Version 0.13.0
-* Http module is now in package Kentor.AuthServices.HttpModule.
-* Improved stub idp with attribute support.
-* Sha256 support
-* Signed assertion handling fixed.
-* and more... see github milestone for details.
+Version 0.19.0
+* Fix: SP-initiated logout uses configured binding.
+* Fix: Removed buggy expansion of relative ReturnUrls
+* Fix: Enabling SHA256 signatures no longer breaks IdentityServer3.
+* Support for SessionNotOnOrAfter
+* And some more, see https://github.com/KentorIT/authservices/milestones/v0.19.0 for details.
 
- Version 0.12.0
- * Compatibility tested with Thinktecture IdentityServer v3.
- * Further improved configuration from code.
- * Linking accounts with ASP.NET Identity now works.
- * Improved exception messages on SAML Response validation failures.
+Version 0.18.1
+* Bug Fix: Use AuthenticationRequest event in HttpModule.
+* Don't use ClaimsPrincipal.Current in Logout Command.
+* Bug Fix: Logout over HTTP POST.
+* Bug Fix: Handle NameIdFormat on Logout.
+
+Release contains breaking changes related to logout handling, please see
+https://coding.abel.nu/2016/06/kentor-authservices-0-18-1-breaking-changes/

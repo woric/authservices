@@ -28,36 +28,39 @@ namespace Kentor.AuthServices
         {
             if (config == null)
             {
-                throw new ArgumentNullException("config");
+                throw new ArgumentNullException(nameof(config));
             }
 
-            Init(config.MetadataUrl, config.AllowUnsolicitedAuthnResponse, options);
+            Init(config.MetadataLocation, config.AllowUnsolicitedAuthnResponse, options);
         }
 
         /// <summary>
         /// Ctor
         /// </summary>
-        /// <param name="metadataUrl">Url to where metadata can be fetched.</param>
+        /// <param name="metadataLocation">Location (url, local path or app 
+        /// relative path such as ~/App_Data) where metadata is located.</param>
         /// <param name="allowUnsolicitedAuthnResponse">Should unsolicited responses 
         /// from idps in this federation be accepted?</param>
         /// <param name="options">Options to pass on to created IdentityProvider
         /// instances and register identity providers in.</param>
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA1704:IdentifiersShouldBeSpelledCorrectly", MessageId = "sp")]
-        public Federation(Uri metadataUrl, bool allowUnsolicitedAuthnResponse, IOptions options)
+        public Federation(string metadataLocation, bool allowUnsolicitedAuthnResponse, IOptions options)
         {
-            Init(metadataUrl, allowUnsolicitedAuthnResponse, options);
+            Init(metadataLocation, allowUnsolicitedAuthnResponse, options);
         }
 
         private bool allowUnsolicitedAuthnResponse;
         private IOptions options;
-        private Uri metadataUrl;
+        private string metadataLocation;
 
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Maintainability", "CA1500:VariableNamesShouldNotMatchFieldNames", MessageId = "metadataUrl"), System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Maintainability", "CA1500:VariableNamesShouldNotMatchFieldNames", MessageId = "allowUnsolicitedAuthnResponse"), System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Maintainability", "CA1500:VariableNamesShouldNotMatchFieldNames", MessageId = "options")]
-        private void Init(Uri metadataUrl, bool allowUnsolicitedAuthnResponse, IOptions options)
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Maintainability", "CA1500:VariableNamesShouldNotMatchFieldNames", MessageId = "metadataLocation")]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Maintainability", "CA1500:VariableNamesShouldNotMatchFieldNames", MessageId = "allowUnsolicitedAuthnResponse")]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Maintainability", "CA1500:VariableNamesShouldNotMatchFieldNames", MessageId = "options")]
+        private void Init(string metadataLocation, bool allowUnsolicitedAuthnResponse, IOptions options)
         {
             this.allowUnsolicitedAuthnResponse = allowUnsolicitedAuthnResponse;
             this.options = options;
-            this.metadataUrl = metadataUrl;
+            this.metadataLocation = metadataLocation;
 
             LoadMetadata();
         }
@@ -70,7 +73,7 @@ namespace Kentor.AuthServices
             {
                 try
                 {
-                    var metadata = MetadataLoader.LoadFederation(metadataUrl);
+                    var metadata = MetadataLoader.LoadFederation(metadataLocation);
 
                     var identityProvidersMetadata = metadata.ChildEntities.Cast<ExtendedEntityDescriptor>()
                         .Where(ed => ed.RoleDescriptors.OfType<IdentityProviderSingleSignOnDescriptor>().Any());
@@ -137,12 +140,9 @@ namespace Kentor.AuthServices
             }
 
             // Remember what we registered this time, to know what to remove nex time.
-            foreach (var idp in identityProviders)
-            {
-                registeredIdentityProviders = identityProviders.ToDictionary(
-                    i => i.EntityId.Id,
-                    i => i.EntityId);
-            }
+            registeredIdentityProviders = identityProviders.ToDictionary(
+                i => i.EntityId.Id,
+                i => i.EntityId);
         }
 
         private void RemoveAllRegisteredIdentityProviders()

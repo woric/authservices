@@ -36,7 +36,7 @@ namespace Kentor.AuthServices.Configuration
             {
                 if(entityId == null)
                 {
-                    throw new ArgumentNullException("entityId");
+                    throw new ArgumentNullException(nameof(entityId));
                 }
 
                 lock(dictionary)
@@ -70,7 +70,7 @@ namespace Kentor.AuthServices.Configuration
         {
             if(idp == null)
             {
-                throw new ArgumentNullException("idp");
+                throw new ArgumentNullException(nameof(idp));
             }
 
             lock(dictionary)
@@ -87,6 +87,21 @@ namespace Kentor.AuthServices.Configuration
             get
             {
                 return this[0];
+            }
+        }
+
+        /// <summary>
+        /// Gets all currently known identity providers. Note that the returned
+        /// enumeration is a copy to avoid race conditions.
+        /// </summary>
+        public IEnumerable<IdentityProvider> KnownIdentityProviders
+        {
+            get
+            {
+                lock(dictionary)
+                {
+                    return dictionary.Values.ToList();
+                }
             }
         }
 

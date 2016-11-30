@@ -24,7 +24,7 @@ namespace Kentor.AuthServices.Configuration
         {
             return isReadOnly;
         }
-                
+
         /// <summary>
         /// EntityId as presented by the idp. Used as key to configuration.
         /// </summary>
@@ -41,19 +41,35 @@ namespace Kentor.AuthServices.Configuration
             }
         }
 
+        const string signOnUrl = nameof(signOnUrl);
         /// <summary>
-        /// Destination url to send requests to.
+        /// Destination url to send sign in requests to.
         /// </summary>
-        [ConfigurationProperty("destinationUrl")]
-        public Uri DestinationUrl
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA1726:UsePreferredTerms", MessageId = "SignOn")]
+        [ConfigurationProperty(signOnUrl)]
+        public Uri SignOnUrl
         {
             get
             {
-                return (Uri)base["destinationUrl"];
+                return (Uri)base[signOnUrl];
             }
             internal set
             {
-                base["destinationUrl"] = value;
+                base[signOnUrl] = value;
+            }
+        }
+
+        const string logoutUrl = nameof(logoutUrl);
+        /// <summary>
+        /// Single logout url endpoint of Idp.
+        /// </summary>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA1726:UsePreferredTerms", MessageId = "Logout")]
+        [ConfigurationProperty(logoutUrl)]
+        public Uri LogoutUrl
+        {
+            get
+            {
+                return (Uri)base[logoutUrl];
             }
         }
 
@@ -96,7 +112,7 @@ namespace Kentor.AuthServices.Configuration
         /// Even though AllowUnsolicitedAuthnResponse is true the InResponseTo must be valid if existing.
         /// </summary>
         [ConfigurationProperty("allowUnsolicitedAuthnResponse", IsRequired = true)]
-        public bool AllowUnsolicitedAuthnResponse 
+        public bool AllowUnsolicitedAuthnResponse
         {
             get
             {
@@ -121,21 +137,70 @@ namespace Kentor.AuthServices.Configuration
             }
         }
 
-        const string metadataUrl = "metadataUrl";
+        const string metadataLocation = nameof(metadataLocation);
 
         /// <summary>
         /// Metadata location url to be used for automatic downloading of metadata.
         /// </summary>
-        [ConfigurationProperty(metadataUrl)]
-        public Uri MetadataUrl
+        [ConfigurationProperty(metadataLocation)]
+        public string MetadataLocation
         {
             get
             {
-                return (Uri)base[metadataUrl];
+                return (string)base[metadataLocation];
             }
             internal set
             {
-                base[metadataUrl] = value;
+                base[metadataLocation] = value;
+            }
+        }
+
+        const string artifactResolutionServices = nameof(artifactResolutionServices);
+        /// <summary>
+        /// Artifact Resolution endpoints for the identity provider.
+        /// </summary>
+        [ConfigurationProperty(artifactResolutionServices)]
+        [ConfigurationCollection(typeof(ArtifactResolutionServiceCollection))]
+        public ArtifactResolutionServiceCollection ArtifactResolutionServices
+        {
+            get
+            {
+                return (ArtifactResolutionServiceCollection)base[artifactResolutionServices];
+            }
+        }
+
+        const string wantAuthnRequestsSigned = nameof(wantAuthnRequestsSigned);
+        /// <summary>
+        /// Does this Idp want the AuthnRequests to be signed?
+        /// </summary>
+        [ConfigurationProperty(wantAuthnRequestsSigned, IsRequired = false, DefaultValue = false)]
+        public bool WantAuthnRequestsSigned
+        {
+            get
+            {
+                return (bool)base[wantAuthnRequestsSigned];
+            }
+        }
+
+        const string disableOutboundLogoutRequests = nameof(disableOutboundLogoutRequests);
+
+        /// <summary>
+        /// Disable outbound logout requests to this idp, even though
+        /// AuthServices is configured for single logout and the idp supports
+        /// it. This setting might be usable when adding SLO to an existing
+        /// setup, to ensure that everyone is ready for SLO before activating.
+        /// </summary>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA1726:UsePreferredTerms", MessageId = "Logout")]
+        [ConfigurationProperty(disableOutboundLogoutRequests, IsRequired = false, DefaultValue = false)]
+        public bool DisableOutboundLogoutRequests
+        {
+            get
+            {
+                return (bool)base[disableOutboundLogoutRequests];
+            }
+            set
+            {
+                base[disableOutboundLogoutRequests] = value;
             }
         }
     }

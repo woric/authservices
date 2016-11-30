@@ -18,19 +18,19 @@ namespace Kentor.AuthServices.WebSso
         /// <param name="request">Request to get application root url from.</param>
         /// <param name="spOptions">SP Options to get module path from.</param>
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2208:InstantiateArgumentExceptionsCorrectly"), System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA1704:IdentifiersShouldBeSpelledCorrectly", MessageId = "sp")]
-        public AuthServicesUrls(HttpRequestData request, ISPOptions spOptions)
+        public AuthServicesUrls(HttpRequestData request, SPOptions spOptions)
         {
             if (request == null)
             {
-                throw new ArgumentNullException("request");
+                throw new ArgumentNullException(nameof(request));
             }
 
             if (spOptions == null)
             {
-                throw new ArgumentNullException("spOptions");
+                throw new ArgumentNullException(nameof(spOptions));
             }
 
-            Init(request.ApplicationUrl, spOptions.ModulePath);
+            Init(request.ApplicationUrl, spOptions);
         }
 
         /// <summary>
@@ -45,12 +45,12 @@ namespace Kentor.AuthServices.WebSso
         {
             if (applicationUrl == null)
             {
-                throw new ArgumentNullException("applicationUrl");
+                throw new ArgumentNullException(nameof(applicationUrl));
             }
 
             if (modulePath == null)
             {
-                throw new ArgumentNullException("modulePath");
+                throw new ArgumentNullException(nameof(modulePath));
             }
 
             Init(applicationUrl, modulePath);
@@ -62,28 +62,43 @@ namespace Kentor.AuthServices.WebSso
         /// </summary>
         /// <param name="assertionConsumerServiceUrl">The full Url for the Assertion Consumer Service.</param>
         /// <param name="signInUrl">The full Url for sign-in.</param>
-        public AuthServicesUrls(Uri assertionConsumerServiceUrl, Uri signInUrl)
+        /// <param name="applicationUrl">The full Url for the application root.</param>
+        public AuthServicesUrls(Uri assertionConsumerServiceUrl, Uri signInUrl, Uri applicationUrl)
         {
             if (signInUrl == null)
             {
-                throw new ArgumentNullException("signInUrl");
+                throw new ArgumentNullException(nameof(signInUrl));
             }
 
             AssertionConsumerServiceUrl = assertionConsumerServiceUrl;
             SignInUrl = signInUrl;
+            ApplicationUrl = applicationUrl;
         }
 
-        void Init(Uri applicationUrl, string modulePath)
+        void Init(Uri publicOrigin, string modulePath)
         {
             if (!modulePath.StartsWith("/", StringComparison.OrdinalIgnoreCase))
             {
                 throw new ArgumentException("modulePath should start with /.");
             }
 
-            var authServicesRoot = applicationUrl.AbsoluteUri.TrimEnd('/') + modulePath + "/";
+            if(!publicOrigin.AbsoluteUri.EndsWith("/", StringComparison.Ordinal))
+            {
+                publicOrigin = new Uri(publicOrigin.AbsoluteUri + "/");
+            }
+
+            var authServicesRoot = publicOrigin.AbsoluteUri.TrimEnd('/') + modulePath + "/";
 
             AssertionConsumerServiceUrl = new Uri(authServicesRoot + CommandFactory.AcsCommandName);
             SignInUrl = new Uri(authServicesRoot + CommandFactory.SignInCommandName);
+            ApplicationUrl = publicOrigin;
+            LogoutUrl = new Uri(authServicesRoot + CommandFactory.LogoutCommandName);
+        }
+
+        void Init(Uri applicationUrl, SPOptions spOptions)
+        {
+            var publicOrigin = spOptions.PublicOrigin ?? applicationUrl;
+            Init(publicOrigin, spOptions.ModulePath);
         }
 
         /// <summary>
@@ -96,5 +111,17 @@ namespace Kentor.AuthServices.WebSso
         /// location for idp discovery.
         /// </summary>
         public Uri SignInUrl { get; private set; }
+        
+        /// <summary>
+        /// The full url of the application root. Used as default redirect
+        /// location after logout.
+        /// </summary>
+        public Uri ApplicationUrl { get; internal set; }
+
+        /// <summary>
+        /// The full url of the logout command.
+        /// </summary>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Naming", "CA1726:UsePreferredTerms", MessageId = "Logout")]
+        public Uri LogoutUrl { get; internal set; }
     }
 }

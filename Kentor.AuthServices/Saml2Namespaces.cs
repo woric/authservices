@@ -23,6 +23,11 @@ namespace Kentor.AuthServices
         /// </summary>
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Security", "CA2104:DoNotDeclareReadOnlyMutableReferenceTypes")]
         public static readonly XNamespace Saml2P = XNamespace.Get(Saml2PName);
+        
+        /// <summary>
+        /// Namespace Uri of Saml2 protocol.
+        /// </summary>
+        public static readonly Uri Saml2PUri = new Uri(Saml2PName);
 
         /// <summary>
         /// Namespace of SAML2 assertions.
@@ -34,6 +39,11 @@ namespace Kentor.AuthServices
         /// </summary>
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Security", "CA2104:DoNotDeclareReadOnlyMutableReferenceTypes")]
         public static readonly XNamespace Saml2 = XNamespace.Get(Saml2Name);
+
+        /// <summary>
+        /// Namespace Uri of SAML2 assertions.
+        /// </summary>
+        public static readonly Uri Saml2Uri = new Uri(Saml2Name);
 
         /// <summary>
         /// Namespace of SAML2 Metadata.
@@ -62,5 +72,16 @@ namespace Kentor.AuthServices
         /// </summary>
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Security", "CA2104:DoNotDeclareReadOnlyMutableReferenceTypes")]
         public static readonly XNamespace XmlSchemaInstance = XNamespace.Get(System.Xml.Schema.XmlSchema.InstanceNamespace);
+
+        /// <summary>
+        /// Namespace for Soap envelope.
+        /// </summary>
+        public const string SoapEnvelopeName = "http://schemas.xmlsoap.org/soap/envelope/";
+
+        /// <summary>
+        /// Namespace for Soap envelope.
+        /// </summary>
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Security", "CA2104:DoNotDeclareReadOnlyMutableReferenceTypes")]
+        public static readonly XNamespace SoapEnvelope = XNamespace.Get(SoapEnvelopeName);
     }
 }

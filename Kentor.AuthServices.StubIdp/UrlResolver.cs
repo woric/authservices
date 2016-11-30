@@ -55,5 +55,21 @@ namespace Kentor.AuthServices.StubIdp
                 return GetCombinedUrl("Manage");
             }
         }
+
+        public static Uri ArtifactServiceUrl
+        {
+            get
+            {
+                return GetCombinedUrl("ArtifactResolve");
+            }
+        }
+
+        public static Uri LogoutServiceUrl
+        {
+            get
+            {
+                return GetCombinedUrl("Logout");
+            }
+        }
     }
 }

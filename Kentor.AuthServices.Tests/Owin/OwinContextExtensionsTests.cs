@@ -3,10 +3,11 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Microsoft.Owin;
 using Kentor.AuthServices.Owin;
 using FluentAssertions;
-using Kentor.AuthServices.TestHelpers;
+using Kentor.AuthServices.Tests.Helpers;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
+using Kentor.AuthServices.WebSso;
 
 namespace Kentor.AuthServices.Tests.Owin
 {
@@ -18,9 +19,9 @@ namespace Kentor.AuthServices.Tests.Owin
         {
             IOwinContext ctx = null;
 
-            var result = await ctx.ToHttpRequestData();
+            var actual = await ctx.ToHttpRequestData(null);
 
-            result.Should().BeNull();
+            actual.Should().BeNull();
         }
 
         [TestMethod]
@@ -34,14 +35,14 @@ namespace Kentor.AuthServices.Tests.Owin
             ctx.Request.Path = new PathString("/somePath");
             ctx.Request.QueryString = new QueryString("param=value");
 
-            var subject = await ctx.ToHttpRequestData();
+            var actual = await ctx.ToHttpRequestData(StubDataProtector.Unprotect);
 
-            subject.Url.Should().Be(ctx.Request.Uri);
-            subject.Form.Count.Should().Be(2);
-            subject.Form["Input1"].Should().Be("Value1");
-            subject.Form["Input2"].Should().Be("Value2");
-            subject.HttpMethod.Should().Be("POST");
-            subject.ApplicationUrl.Should().Be(new Uri("http://sp.example.com/"));
+            actual.Url.Should().Be(ctx.Request.Uri);
+            actual.Form.Count.Should().Be(2);
+            actual.Form["Input1"].Should().Be("Value1");
+            actual.Form["Input2"].Should().Be("Value2");
+            actual.HttpMethod.Should().Be("POST");
+            actual.ApplicationUrl.Should().Be(new Uri("http://sp.example.com/"));
         }
 
         [TestMethod]
@@ -51,9 +52,38 @@ namespace Kentor.AuthServices.Tests.Owin
 
             ctx.Request.PathBase = new PathString("/ApplicationPath");
 
-            var subject = await ctx.ToHttpRequestData();
+            var actual = await ctx.ToHttpRequestData(null);
 
-            subject.ApplicationUrl.Should().Be(new Uri("http://sp.example.com/ApplicationPath"));
+            actual.ApplicationUrl.Should().Be(new Uri("http://sp.example.com/ApplicationPath"));
+        }
+
+        [TestMethod]
+        public async Task OwinContextExtensionsTests_ToHttpRequestData_ReadsRelayStateCookie()
+        {
+            var ctx = OwinTestHelpers.CreateOwinContext();
+            ctx.Request.QueryString = new QueryString("RelayState", "SomeState");
+
+            var storedRequestState = new StoredRequestState(
+                null, new Uri("http://sp.example.com"), null, null);
+
+            var cookieData = HttpRequestData.ConvertBinaryData(
+                    StubDataProtector.Protect(storedRequestState.Serialize()));
+
+            ctx.Request.Headers["Cookie"] = $"Kentor.SomeState={cookieData}";
+
+            var actual = await ctx.ToHttpRequestData(StubDataProtector.Unprotect);
+
+            actual.StoredRequestState.ShouldBeEquivalentTo(storedRequestState);
+        }
+
+        [TestMethod]
+        public void OwinContextExtensionsTests_ToHttpRequestData_HandlesRelayStateWithoutCookie()
+        {
+            var ctx = OwinTestHelpers.CreateOwinContext();
+            ctx.Request.QueryString = new QueryString("RelayState", "SomeState");
+
+            ctx.Invoking(async c => await c.ToHttpRequestData(null))
+                .ShouldNotThrow();
         }
     }
 }

@@ -5,32 +5,23 @@ using System.Configuration;
 using System.Globalization;
 using System.IdentityModel.Metadata;
 using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using Kentor.AuthServices.Internal;
 using Kentor.AuthServices.Metadata;
 using Kentor.AuthServices.Saml2P;
-using System.IdentityModel.Configuration;
-using System.IdentityModel.Services.Configuration;
+using System.Diagnostics.CodeAnalysis;
+using System.Collections.ObjectModel;
 
 namespace Kentor.AuthServices.Configuration
 {
     /// <summary>
     /// Config section for the module.
     /// </summary>
-    public class KentorAuthServicesSection : ConfigurationSection, ISPOptions
+    public class KentorAuthServicesSection : ConfigurationSection
     {
         private static readonly KentorAuthServicesSection current =
             (KentorAuthServicesSection)ConfigurationManager.GetSection("kentor.authServices");
 
-        private bool allowChange = true;
-
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Maintainability", "CA1500:VariableNamesShouldNotMatchFieldNames", MessageId = "allowChange")]
-        internal void AllowChange(bool allowChange)
-        {
-            this.allowChange = allowChange;
-        }
+        internal bool AllowChange { get; set; }
 
         /// <summary>
         /// Used for testing, always returns true in production.
@@ -38,17 +29,7 @@ namespace Kentor.AuthServices.Configuration
         /// <returns>Returns true (unless during tests)</returns>
         public override bool IsReadOnly()
         {
-            return !allowChange;
-        }
-
-        /// <summary>
-        /// Ctor
-        /// </summary>
-        public KentorAuthServicesSection()
-        {
-            saml2PSecurityTokenHandler = new Lazy<Saml2PSecurityTokenHandler>(
-                () => new Saml2PSecurityTokenHandler(this),
-                true);
+            return !AllowChange;
         }
 
         /// <summary>
@@ -79,7 +60,7 @@ namespace Kentor.AuthServices.Configuration
         /// <summary>
         /// The Url to redirect back to after successfull authentication.
         /// </summary>
-        [ConfigurationProperty("returnUrl", IsRequired = true)]
+        [ConfigurationProperty("returnUrl")]
         public Uri ReturnUrl
         {
             get
@@ -89,13 +70,17 @@ namespace Kentor.AuthServices.Configuration
         }
 
         /// <summary>
-        /// For how long may the metadata be cached by a receiving party?
+        /// By default, the service provider uses the host, protocol, and port
+        /// from the HTTP request when creating links. This might not be
+        /// accurate in reverse proxy or load-balancing situations. You can
+        /// override the origin used for link generation using this property.
         /// </summary>
-        public TimeSpan MetadataCacheDuration
+        [ConfigurationProperty("publicOrigin", IsRequired = false)]
+        public Uri PublicOrigin
         {
             get
             {
-                return Metadata.CacheDuration;
+                return (Uri)base["publicOrigin"];
             }
         }
 
@@ -138,19 +123,6 @@ namespace Kentor.AuthServices.Configuration
             }
         }
 
-        private readonly Lazy<Saml2PSecurityTokenHandler> saml2PSecurityTokenHandler;
-
-        /// <summary>
-        /// The security token handler used to process incoming assertions for this SP.
-        /// </summary>
-        public Saml2PSecurityTokenHandler Saml2PSecurityTokenHandler
-        {
-            get
-            {
-                return saml2PSecurityTokenHandler.Value;
-            }
-        }
-
         const string modulePath = "modulePath";
         /// <summary>
         /// Application root relative path for AuthServices endpoints. The 
@@ -163,6 +135,32 @@ namespace Kentor.AuthServices.Configuration
             get
             {
                 return (string)base[modulePath];
+            }
+        }
+
+        const string nameIdPolicy = nameof(nameIdPolicy);
+        /// <summary>
+        /// NamedId policy element.
+        /// </summary>
+        [ConfigurationProperty(nameIdPolicy)]
+        public NameIdPolicyElement NameIdPolicyElement
+        {
+            get
+            {
+                return (NameIdPolicyElement) base[nameIdPolicy];
+            }
+        }
+
+        const string requestedAuthnContext = nameof(requestedAuthnContext);
+        /// <summary>
+        /// RequestedAuthnContext config.
+        /// </summary>
+        [ConfigurationProperty(requestedAuthnContext)]
+        public RequestedAuthnContextElement RequestedAuthnContext
+        {
+            get
+            {
+                return (RequestedAuthnContextElement)base[requestedAuthnContext];
             }
         }
 
@@ -287,17 +285,69 @@ namespace Kentor.AuthServices.Configuration
             }
         }
 
-        private IdentityConfiguration systemIdentityModelIdentityConfiguration
-            = new IdentityConfiguration(true);
-
+        const string serviceCertificates = nameof(serviceCertificates);
         /// <summary>
-        /// The System.IdentityModel configuration to use.
+        /// Certificates used by the service provider for signing and/or decryption.
         /// </summary>
-        public IdentityConfiguration SystemIdentityModelIdentityConfiguration
+        [ConfigurationProperty(serviceCertificates)]
+        [ConfigurationCollection(typeof(ServiceCertificateElementCollection))]
+        public ServiceCertificateElementCollection ServiceCertificates
         {
             get
             {
-                return systemIdentityModelIdentityConfiguration;
+                return (ServiceCertificateElementCollection)base[serviceCertificates];
+            }
+        }
+
+        const string authenticateRequestSigningBehavior = nameof(authenticateRequestSigningBehavior);
+        /// <summary>
+        /// Signing behavior for created AuthnRequests.
+        /// </summary>
+        [ConfigurationProperty(authenticateRequestSigningBehavior)]
+        public SigningBehavior AuthenticateRequestSigningBehavior
+        {
+            get
+            {
+                return (SigningBehavior)base[authenticateRequestSigningBehavior];
+            }
+            internal set
+            {
+                base[authenticateRequestSigningBehavior] = value;
+            }
+        }
+
+        const string validateCertificates = nameof(validateCertificates);
+        /// <summary>
+        /// Validate certificates when validating signatures? Normally not a
+        /// good idea as SAML2 deployments typically exchange certificates
+        /// directly and isntead of relying on the public certificate
+        /// infrastructure.
+        /// </summary>
+        [ConfigurationProperty(validateCertificates, IsRequired = false)]
+        public bool ValidateCertificates
+        {
+            get
+            {
+                return (bool)base[validateCertificates];
+            }
+            internal set
+            {
+                base[validateCertificates] = value;
+            }
+        }
+
+        const string compatibility = nameof(compatibility);
+
+        /// <summary>
+        /// Compatibility settings. Can be used to make AuthServices accept
+        /// certain non-standard behaviour.
+        /// </summary>
+        [ConfigurationProperty(compatibility)]
+        public CompatibilityElement Compatibility 
+        {
+            get
+            {
+                return (CompatibilityElement)base[compatibility];
             }
         }
     }

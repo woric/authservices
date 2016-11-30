@@ -14,6 +14,7 @@ using System.Configuration;
 using Kentor.AuthServices.Saml2P;
 using Kentor.AuthServices.WebSso;
 using Kentor.AuthServices.HttpModule;
+using System.Xml;
 
 namespace Kentor.AuthServices.StubIdp.Controllers
 {
@@ -36,23 +37,32 @@ namespace Kentor.AuthServices.StubIdp.Controllers
                         // Override default StubIdp Acs with Acs from IdpConfiguration
                         model.AssertionModel.AssertionConsumerServiceUrl = fileData.DefaultAssertionConsumerServiceUrl;
                     }
+                    if(!string.IsNullOrEmpty(fileData.DefaultAssertionConsumerServiceUrl))
+                    {
+                        model.AssertionModel.Audience = fileData.DefaultAudience;
+                    }
+
                     model.CustomDescription = fileData.IdpDescription;
                     model.AssertionModel.NameId = null;
                     model.HideDetails = fileData.HideDetails;
                 }
             }
 
-            var requestData = Request.ToHttpRequestData();
+            var requestData = Request.ToHttpRequestData(true);
             if (requestData.QueryString["SAMLRequest"].Any())
             {
-                var decodedXmlData = Saml2Binding.Get(Saml2BindingType.HttpRedirect)
-                    .Unbind(requestData);
+                var extractedMessage = Saml2Binding.Get(Saml2BindingType.HttpRedirect)
+                    .Unbind(requestData, null);
 
-                var request = Saml2AuthenticationRequest.Read(decodedXmlData);
+                var request = new Saml2AuthenticationRequest(
+                    extractedMessage.Data,
+                    extractedMessage.RelayState);
 
-                model.AssertionModel.InResponseTo = request.Id;
+                model.AssertionModel.InResponseTo = request.Id.Value;
                 model.AssertionModel.AssertionConsumerServiceUrl = request.AssertionConsumerServiceUrl.ToString();
-                model.AssertionModel.AuthnRequestXml = decodedXmlData;
+                model.AssertionModel.RelayState = extractedMessage.RelayState;
+                model.AssertionModel.Audience = request.Issuer.Id;
+                model.AssertionModel.AuthnRequestXml = extractedMessage.Data.PrettyPrint();
             }
 
             return View(model);
@@ -65,10 +75,8 @@ namespace Kentor.AuthServices.StubIdp.Controllers
             {
                 var response = model.AssertionModel.ToSaml2Response();
 
-                var commandResult = Saml2Binding.Get(Saml2BindingType.HttpPost)
-                    .Bind(response);
-
-                return commandResult.ToActionResult();
+                return Saml2Binding.Get(model.AssertionModel.ResponseBinding)
+                    .Bind(response).ToActionResult();
             }
 
             return View(model);

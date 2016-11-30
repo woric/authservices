@@ -1,6 +1,7 @@
 ﻿using Kentor.AuthServices.Configuration;
 using Microsoft.Owin;
 using Microsoft.Owin.Security;
+using Microsoft.Owin.Security.DataProtection;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -18,6 +19,12 @@ namespace Kentor.AuthServices.Owin
     public class KentorAuthServicesAuthenticationOptions : AuthenticationOptions, IOptions
     {
         /// <summary>
+        /// Set of callbacks that can be used as extension points for various
+        /// events.
+        /// </summary>
+        public KentorAuthServicesNotifications Notifications { get; set; }
+
+        /// <summary>
         /// Constructor
         /// <param name="loadConfiguration">Should the options be inited by loading app/web.config?</param>
         /// </summary>
@@ -28,10 +35,11 @@ namespace Kentor.AuthServices.Owin
         {
             AuthenticationMode = AuthenticationMode.Passive;
             Description.Caption = Constants.DefaultCaption;
+            Notifications = new KentorAuthServicesNotifications();
 
             if (loadConfiguration)
             {
-                SPOptions = KentorAuthServicesSection.Current;
+                SPOptions = new SPOptions(KentorAuthServicesSection.Current);
                 KentorAuthServicesSection.Current.IdentityProviders.RegisterIdentityProviders(this);
                 KentorAuthServicesSection.Current.Federations.RegisterFederations(this);
             }
@@ -47,7 +55,7 @@ namespace Kentor.AuthServices.Owin
         /// Options for the service provider's behaviour; i.e. everything except
         /// the idp and federation list.
         /// </summary>
-        public ISPOptions SPOptions { get; set; }
+        public SPOptions SPOptions { get; set; }
 
         private readonly IdentityProviderDictionary identityProviders = new IdentityProviderDictionary();
 
@@ -76,5 +84,10 @@ namespace Kentor.AuthServices.Owin
                 Description.Caption = value;
             }
         }
+
+        /// <summary>
+        /// Gets or sets the type used to secure data handled by the middleware.
+        /// </summary>
+        internal IDataProtector DataProtector { get; set; }
     }
 }

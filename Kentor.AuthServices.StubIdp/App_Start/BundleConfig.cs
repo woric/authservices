@@ -11,18 +11,21 @@ namespace Kentor.AuthServices.StubIdp
     {
         public static void RegisterBundles(BundleCollection bundles)
         {
-            bundles.Add(new Bundle("~/Content/css")
+            bundles.Add(new Bundle("~/Content/css-bundle")
                 {
                     Transforms = { new LessTransform() }
                 }
                 .Include(
+                "~/Content/css/select2.css",
                 "~/Content/normalize.css",
                 "~/Content/site.less"));
 
             bundles.Add(new ScriptBundle("~/Scripts/js").Include(
                 "~/Scripts/jquery-{version}.js",
+                "~/Scripts/js.cookie.js",
                 "~/Scripts/jquery.validate.js",
                 "~/Scripts/jquery.validate.unobtrusive.js",
+                "~/Scripts/select2.js",
                 "~/Scripts/ICanHaz.js",
                 "~/Scripts/ViewIndex.js"));
         }

@@ -31,7 +31,7 @@ namespace Kentor.AuthServices.Mvc
         {
             if (commandResult == null)
             {
-                throw new ArgumentNullException("commandResult");
+                throw new ArgumentNullException(nameof(commandResult));
             }
 
             switch (commandResult.HttpStatusCode)
@@ -52,26 +52,6 @@ namespace Kentor.AuthServices.Mvc
                     return result;
                 default:
                     throw new NotImplementedException();
-            }
-        }
-
-        /// <summary>
-        /// Establishes an application session by calling the session authentication module.
-        /// </summary>
-        [ExcludeFromCodeCoverage]
-        public static void SignInSessionAuthenticationModule(this CommandResult commandResult)
-        {
-            if (commandResult == null)
-            {
-                throw new ArgumentNullException("commandResult");
-            }
-            // Ignore this if we're not running inside IIS, e.g. in unit tests.
-            if (commandResult.Principal != null && HttpContext.Current != null)
-            {
-                var sessionToken = new SessionSecurityToken(commandResult.Principal);
-
-                FederatedAuthentication.SessionAuthenticationModule
-                    .AuthenticateSessionSecurityToken(sessionToken, true);
             }
         }
     }

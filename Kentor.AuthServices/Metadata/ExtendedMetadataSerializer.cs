@@ -49,26 +49,42 @@ namespace Kentor.AuthServices.Metadata
         protected override void WriteCustomAttributes<T>(XmlWriter writer, T source)
         {
             var cachedMetadata = source as ICachedMetadata;
-            if (cachedMetadata != null && cachedMetadata.CacheDuration.HasValue)
+            if (cachedMetadata != null)
             {
-                writer.WriteAttributeString(
-                    "cacheDuration",
-                    XmlConvert.ToString(cachedMetadata.CacheDuration.Value));
+                if (cachedMetadata.CacheDuration.HasValue)
+                {
+                    writer.WriteAttributeString(
+                        "cacheDuration",
+                        XmlConvert.ToString(cachedMetadata.CacheDuration.Value));
+                }
+                if (cachedMetadata.ValidUntil.HasValue)
+                {
+                    writer.WriteAttributeString(
+                        "validUntil",
+                        cachedMetadata.ValidUntil.Value.ToSaml2DateTimeString());
+                }
             }
 
-            var extendedEntityDescriptor = source as ExtendedEntityDescriptor;
-            if (extendedEntityDescriptor != null)
+            if(typeof(T) == typeof(EntityDescriptor))
             {
                 writer.WriteAttributeString("xmlns", "saml2", null, Saml2Namespaces.Saml2Name);
+            }
 
+            // The framework calls this callback several times when writing
+            // a SPSSODescriptor. Every time with T being a more specialized
+            // class. Only do the writing in the final, most specialized call.
+            var extendedSPSsoDescriptor = source as ExtendedServiceProviderSingleSignOnDescriptor;
+            if (extendedSPSsoDescriptor != null 
+                && typeof(T) == typeof(ServiceProviderSingleSignOnDescriptor))
+            {
                 // This is really an element. But it must be placed first of the child elements
                 // and WriteCustomAttributes is called at the right place for that.
-                if (extendedEntityDescriptor.Extensions.DiscoveryResponse != null)
+                if (extendedSPSsoDescriptor.Extensions.DiscoveryResponse != null)
                 {
                     writer.WriteStartElement("Extensions", Saml2Namespaces.Saml2MetadataName);
                     WriteIndexedProtocolEndpoint(
                         writer,
-                        extendedEntityDescriptor.Extensions.DiscoveryResponse,
+                        extendedSPSsoDescriptor.Extensions.DiscoveryResponse,
                         new XmlQualifiedName("DiscoveryResponse", Saml2Namespaces.Saml2IdpDiscoveryName));
                     writer.WriteEndElement();
                 }
@@ -159,6 +175,20 @@ namespace Kentor.AuthServices.Metadata
         protected override EntitiesDescriptor CreateEntitiesDescriptorInstance()
         {
             return new ExtendedEntitiesDescriptor();
+        }
+
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1062:Validate arguments of public methods", MessageId = "0")]
+        protected override ServiceProviderSingleSignOnDescriptor ReadServiceProviderSingleSignOnDescriptor(XmlReader reader)
+        {
+            reader.Skip();
+            return CreateServiceProviderSingleSignOnDescriptorInstance();
+        }
+
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1062:Validate arguments of public methods", MessageId = "0")]
+        protected override Organization ReadOrganization(XmlReader reader)
+        {
+            reader.Skip();
+            return CreateOrganizationInstance();
         }
     }
 }

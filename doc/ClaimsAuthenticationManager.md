@@ -15,4 +15,13 @@ class.
 
 Then register it with a 
 [`<claimsAuthenticationManager>`](Configuration.md#claimsauthenticationmanager-element) 
-element in the configuration.
+element in the configuration if the configuration is loaded from the config file.
+If the configuration is done in code (typically for the OWIN middleware) the
+`ClaimsAuthenticationManager` should be registered in 
+`Options.SPOptions.SystemIdentityModelIdentityConfiguration.ClaimsAuthenticationManager`.
+
+#Single Logout
+If you are using Single Logout, you need to make sure that the claims containing
+the AuthServices logout information are present in the returned identity. the
+types of the claims are available in `AuthServicesClaimTypes.SessionIndex` and
+`AuthServicesClaimTypes.LogoutNameIdentifier`.

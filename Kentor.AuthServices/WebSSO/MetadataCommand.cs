@@ -18,16 +18,23 @@ namespace Kentor.AuthServices.WebSso
         {
             if(options == null)
             {
-                throw new ArgumentNullException("options");
+                throw new ArgumentNullException(nameof(options));
             }
 
             var urls = new AuthServicesUrls(request, options.SPOptions);
 
-            return new CommandResult()
+            var metadata = options.SPOptions.CreateMetadata(urls);
+            options.Notifications.MetadataCreated(metadata, urls);
+
+            var result = new CommandResult()
             {
-                Content = options.SPOptions.CreateMetadata(urls).ToXmlString(),
+                Content = metadata.ToXmlString(options.SPOptions.SigningServiceCertificate),
                 ContentType = "application/samlmetadata+xml"
             };
+
+            options.Notifications.MetadataCommandResultCreated(result);
+
+            return result;
         }
     }
 }
